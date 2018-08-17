@@ -5,7 +5,8 @@ import warnings
 import numpy as np
 from typing import Union, Optional, List, Dict, Tuple, Set, Iterable, Any, Type
 
-from PIL import Image
+import PIL
+from PIL import Image, ImageFile, JpegImagePlugin, GifImagePlugin, PngImagePlugin
 from typeguard import *
 
 """
@@ -27,10 +28,15 @@ class Info:
 	- Table (same as the item above) containing other instances of Info
 	"""
 	
-	__authorize_quantum_dtype = Union[int, float, complex, str, Image.Image, Type['Info'], None]
+	__authorize_quantum_dtype = Union[int, float, complex, str, Image.Image,
+	                                  GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile,
+	                                  JpegImagePlugin.JpegImageFile, Type['Info'], None]
 	__authorize_dtype = Union[
 		__authorize_quantum_dtype, np.ndarray, Iterable[Union[__authorize_quantum_dtype, np.ndarray,
 		                                                      List, Set, Tuple, Dict, Iterable]]]
+	__authorize_dtype = Union[__authorize_dtype, List[__authorize_dtype], Set[__authorize_dtype],
+	                          Tuple[__authorize_dtype], Dict[__authorize_dtype, __authorize_dtype],
+	                          Iterable[__authorize_dtype]]
 	
 	""" CONSTRUCTOR """
 	
@@ -138,6 +144,9 @@ class Info:
 			return return_fn(self, data, dtype, update_attr)
 		elif isinstance(data, Info):
 			return return_fn(self, data, dtype, update_attr)
+		# If data is a numpy array, let it as it is. TODO: Change that
+		elif self.check_data_against_dtype(data, np.ndarray):
+			return return_fn(self, data, dtype, update_attr)
 		# If data is an Iterable, use recursive concept
 		elif self.check_data_against_dtype(data, Union[list, dict, set, tuple, np.ndarray]):
 			only_info_instances = True
@@ -163,7 +172,10 @@ class Info:
 			# process it again (recursive)
 			# elif not only_info_instances and only_quantum_type:
 			else:
-				c_data = copy.deepcopy(data)
+				try:
+					c_data = copy.deepcopy(data)
+				except AttributeError:
+					c_data = copy.copy(data)
 				data = []
 				for datum in c_data:
 					if isinstance(datum, Info):
@@ -174,6 +186,13 @@ class Info:
 						i_datum = Info(data=datum, process_data=False)
 						i_datum = i_datum.process()
 						data.append(i_datum)
+						
+				if dtype == Tuple or (hasattr(dtype, "__origin__") and dtype.__origin__ == Tuple):
+					data = tuple(data)
+				elif dtype == Set or (hasattr(dtype, "__origin__") and dtype.__origin__ == Set):
+					data = set(data)
+				elif dtype == np.array or (hasattr(dtype, "__origin__") and dtype.__origin__ == np.array):
+					data = np.array(data)
 		
 		return return_fn(self, data, dtype, update_attr)
 		
@@ -301,10 +320,12 @@ class Info:
 			is_instance_dtype = True
 		
 		authorize_dtype = self.get_authorize_dtype()
+		images = [Image.Image, JpegImagePlugin.JpegImageFile, GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile]
 		
 		# If dtype ∈ authorize_dtype or dtype ⊂ authorize_dtype
-		if dtype in authorize_dtype.__args__ or \
-				(hasattr(dtype, "__args__") and set(dtype.__args__) < set(authorize_dtype.__args__)):
+		if dtype in authorize_dtype.__args__ or dtype in images or \
+				(hasattr(dtype, "__args__") and (set(dtype.__args__) < set(authorize_dtype.__args__) or \
+				                                 len(set(dtype.__args__).intersection(images)) > 0)):
 			return True
 		elif dtype in [list, dict, tuple, set]:
 			message = "The given dtype is too simple: '{}'. Please use the value List[...], Tuple[...], " \
@@ -542,8 +563,12 @@ class Info:
 			else:
 				return origin
 		
+		if other is None:
+			return False
 		if isinstance(other, Info):
-			if self.data != other.data:
+			if self.dtype == np.ndarray:
+				return other.dtype == np.ndarray and (self.data == other.data).all()
+			elif self.data != other.data:
 				return False
 			# Check dtype:
 			else:

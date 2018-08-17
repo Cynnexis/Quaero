@@ -2,7 +2,7 @@ import numpy as np
 from unittest import TestCase
 from typing import Union, Optional, List, Dict, Tuple, Set, Iterable, Any
 
-from PIL import Image
+from PIL import Image, ImageFile, JpegImagePlugin
 
 from qr.info import Info
 from qr.webengine import WebEngine
@@ -12,6 +12,7 @@ from qr.webresult import WebResult
 class TestInfo(TestCase):
 	
 	def setUp(self):
+		# info1
 		self.data1 = [["My title", "My content", 25], ["Title again", "Content again", 48]]
 		
 		self.dtype1a = List[List[Union[str, int]]]
@@ -21,16 +22,31 @@ class TestInfo(TestCase):
 		
 		self.dtype1 = (self.dtype1a, self.dtype1b, self.dtype1c, self.dtype1d)
 		
-		i = Info(data=self.data1)
+		i = Info(data=self.data1, process_data=False)
 		for dtype1 in self.dtype1:
-			self.info1 = Info(data=self.data1, dtype=dtype1)
+			self.info1 = Info(data=self.data1, dtype=dtype1, process_data=False)
 			self.assertEqual(i, self.info1)
 		del i
 		
-		self.data = [self.data1]
-		self.dtype = [self.dtype1]
+		#info2
+		self.data2 = (
+			"str",
+			1,
+			2.0,
+			3j,
+			#Image.open("../../res/test/blackhole.jpg"),
+			np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8)
+		)
+		self.dtype2 = Tuple[Union[str, int, float, complex, np.ndarray]] #, JpegImagePlugin.JpegImageFile
+		i = Info(data=self.data2, process_data=False)
+		self.info2 = Info(data=self.data2, dtype=self.dtype2, process_data=False)
+		self.assertEqual(i, self.info2)
+		del i
+		
+		self.data = [self.data1, self.data2]
+		self.dtype = [self.dtype1, self.dtype2]
 		self.map = zip(self.data, self.dtype)
-		self.info = [self.info1]
+		self.info = [self.info1, self.info2]
 	
 	def test_process(self):
 		info1processed = Info([
@@ -45,10 +61,23 @@ class TestInfo(TestCase):
 				Info(48)
 			])
 		], process_data=False)
-		test_info1 = self.info1.process(update_attr=False)
+		test_info1 = self.info1.process(update_attr=True)
 		self.assertEqual(info1processed, test_info1)
 		self.assertEqual(test_info1, self.info1.process())
 		self.assertEqual(self.info1, self.info1.process())
+		
+		info2processed = Info((
+			Info("str"),
+			Info(1),
+			Info(2.0),
+			Info(3j),
+			#Info(Image.open("../../res/test/blackhole.jpg")),
+			Info(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8))
+		), process_data=False)
+		test_info2 = self.info2.process(update_attr=True)
+		self.assertEqual(info2processed, test_info2)
+		self.assertEqual(test_info2, self.info2.process())
+		self.assertEqual(self.info2, self.info2.process())
 	
 	def test_autodetect_dtype(self):
 		i = Info()
@@ -57,6 +86,7 @@ class TestInfo(TestCase):
 		self.assertEqual(int, i.autodetect_dtype(15))
 		self.assertEqual(float, i.autodetect_dtype(7.2))
 		self.assertEqual(complex, i.autodetect_dtype(7.2j + 5))
+		#self.assertEqual(bool, i.autodetect_dtype(True))
 		self.assertEqual(Image.Image, i.autodetect_dtype(Image.Image()))
 		
 		# Object type
