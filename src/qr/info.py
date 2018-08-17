@@ -28,20 +28,22 @@ class Info:
 	- Table (same as the item above) containing other instances of Info
 	"""
 	
-	__authorize_images = [Image.Image, JpegImagePlugin.JpegImageFile, GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile]
-	__authorize_quantum_dtype = Union[int, float, complex, str, Image.Image,
-	                                  GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile,
-	                                  JpegImagePlugin.JpegImageFile, Type['Info'], None]
-	__authorize_dtype = Union[
-		__authorize_quantum_dtype, np.ndarray, Iterable[Union[__authorize_quantum_dtype, np.ndarray,
-		                                                      List, Set, Tuple, Dict, Iterable]]]
-	__authorize_dtype = Union[__authorize_dtype, List[__authorize_dtype], Set[__authorize_dtype],
-	                          Tuple[__authorize_dtype], Dict[__authorize_dtype, __authorize_dtype],
-	                          Iterable[__authorize_dtype]]
+	__list_images = (
+	Image.Image, JpegImagePlugin.JpegImageFile, GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile)
+	__union_images = Union[__list_images]
+	__list_quantum_dtypes = (int, float, complex, str, bool, Type['Info'], None) + __list_images
+	__union_quantum_dtype = Union[__list_quantum_dtypes]
+	__list_dtype = __list_quantum_dtypes + (np.ndarray, Iterable[Union[__list_quantum_dtypes + (np.ndarray, List, Set,
+	                                                                                            Tuple, Dict,
+	                                                                                            Iterable)]])
+	__union_dtype = Union[__list_dtype]
+	__union_dtype = Union[__union_dtype, List[__union_dtype], Set[__union_dtype],
+	                      Tuple[__union_dtype], Dict[__union_dtype, __union_dtype],
+	                      Iterable[__union_dtype]]
 	
 	""" CONSTRUCTOR """
 	
-	def __init__(self, data: __authorize_dtype = None, dtype: Any = None, process_data: bool = True):
+	def __init__(self, data: __union_dtype = None, dtype: Any = None, process_data: bool = True):
 		"""
 		Constructor of Info
 		:param data: The data that the instance will handle.
@@ -63,7 +65,10 @@ class Info:
 					self._dtype = dtype
 				else:
 					raise TypeError("The type of the given data ({}) does not match the given "
-					                "dtype ({}).\n\tdata = {}\n\tAuto-detected type for data = {}".format(type(data), dtype, data, self.autodetect_dtype(data)))
+					                "dtype ({}).\n\tdata = {}\n\tAuto-detected type for data = {}".format(type(data),
+					                                                                                      dtype, data,
+					                                                                                      self.autodetect_dtype(
+						                                                                                      data)))
 			else:  # dtype is None
 				autodetected_type = self.autodetect_dtype(data)
 				self._data = data
@@ -78,10 +83,10 @@ class Info:
 		
 		if process_data:
 			self.process(update_attr=True)
-		
+	
 	""" INFO METHODS """
 	
-	def process(self, data: __authorize_dtype = None, dtype: Any = None, update_attr: bool = False) -> \
+	def process(self, data: __union_dtype = None, dtype: Any = None, update_attr: bool = False) -> \
 			'Info':
 		"""
 		Process the data to represent in the best format.
@@ -141,7 +146,7 @@ class Info:
 		""" Check the different type of data, and parse it """
 		
 		# If data is already at a "quantum type", don't do anything more
-		if self.check_data_against_dtype(data, self.__authorize_quantum_dtype, False):
+		if self.check_data_against_dtype(data, self.__union_quantum_dtype, False):
 			return return_fn(self, data, dtype, update_attr)
 		elif isinstance(data, Info):
 			return return_fn(self, data, dtype, update_attr)
@@ -157,7 +162,7 @@ class Info:
 				if isinstance(datum, Info):
 					datum.process()
 				# Otherwise, check that it is a "quantum type"
-				elif self.check_data_against_dtype(datum, self.__authorize_quantum_dtype):
+				elif self.check_data_against_dtype(datum, self.__union_quantum_dtype):
 					only_info_instances = False
 				# If there is more than a quantum type
 				else:
@@ -182,12 +187,12 @@ class Info:
 					if isinstance(datum, Info):
 						# datum already processed in previous loop
 						data.append(datum)
-					# elif self.check_data_against_dtype(datum, self.__authorize_quantum_dtype):
+					# elif self.check_data_against_dtype(datum, self.__union_quantum_dtype):
 					else:
 						i_datum = Info(data=datum, process_data=False)
 						i_datum = i_datum.process()
 						data.append(i_datum)
-						
+				
 				if dtype == Tuple or (hasattr(dtype, "__origin__") and dtype.__origin__ == Tuple):
 					data = tuple(data)
 				elif dtype == Set or (hasattr(dtype, "__origin__") and dtype.__origin__ == Set):
@@ -196,16 +201,16 @@ class Info:
 					data = np.array(data)
 		
 		return return_fn(self, data, dtype, update_attr)
-		
+	
 	""" TYPE-RELATED METHODS """
 	
-	def autodetect_dtype(self, data: Union[__authorize_dtype, Type['Info']] = None) -> Union[__authorize_dtype,
-	                                                                                         Type['Info']]:
+	def autodetect_dtype(self, data: Union[__union_dtype, Type['Info']] = None) -> Union[__union_dtype,
+	                                                                                     Type['Info']]:
 		if data is None:
 			data = self.data
 		
 		dtype = type(data)
-		if self.check_data_against_dtype(data, self.__authorize_quantum_dtype, False):
+		if self.check_data_against_dtype(data, self.__union_quantum_dtype, False):
 			return dtype
 		if isinstance(data, Info):
 			return Info
@@ -248,7 +253,7 @@ class Info:
 					for value in data.values():
 						# Recursive call
 						values_content.append(self.autodetect_dtype(value))
-					
+				
 				# Use keys_content and values_content in Union.__args__
 				keys_content = tuple(set(keys_content)) if keys_content is not None else None
 				k = Union[keys_content]
@@ -260,8 +265,8 @@ class Info:
 				return dtype
 			else:
 				raise TypeError("Cannot detect the type of data : {}".format(dtype))
-			# warnings.warn("Cannot detect the type of data : {}".format(dtype), UserWarning)
-			# return dtype
+		# warnings.warn("Cannot detect the type of data : {}".format(dtype), UserWarning)
+		# return dtype
 	
 	@typechecked
 	def check_data_against_dtype(self, data: Any = None, dtype: Any = None, try_autodetect_dtype: bool = True) -> bool:
@@ -323,9 +328,9 @@ class Info:
 		authorize_dtype = self.get_authorize_dtype()
 		
 		# If dtype ∈ authorize_dtype or dtype ⊂ authorize_dtype
-		if dtype in authorize_dtype.__args__ or dtype in self.__authorize_images or \
+		if dtype in authorize_dtype.__args__ or dtype in self.__list_dtype or dtype in self.__list_images or \
 				(hasattr(dtype, "__args__") and (set(dtype.__args__) < set(authorize_dtype.__args__) or \
-				                                 len(set(dtype.__args__).intersection(self.__authorize_images)) > 0)):
+				                                 set(dtype.__args__) < set(self.__list_dtype))):
 			return True
 		elif dtype in [list, dict, tuple, set]:
 			message = "The given dtype is too simple: '{}'. Please use the value List[...], Tuple[...], " \
@@ -333,7 +338,7 @@ class Info:
 			if is_instance_dtype:
 				message += " The given dtype will be replaced by Iterable[Union[int, float, complex, str, " \
 				           "Image.Image, Info, None]]"
-				self._dtype = Iterable[self.__authorize_quantum_dtype]
+				self._dtype = Iterable[self.__union_quantum_dtype]
 			
 			warnings.warn(message, UserWarning)
 			return True
@@ -378,13 +383,13 @@ class Info:
 		return True
 	
 	@staticmethod
-	def get_authorize_dtype():
+	def get_authorize_dtype() -> Union:
 		"""
 		Return a Union of all possible type that the class Info can handle.
 		:return: Return a typing.Union object
 		:rtype: Union
 		"""
-		return Info.__authorize_dtype
+		return Info.__union_dtype
 	
 	""" FORMAT FUNCTION """
 	
@@ -393,7 +398,7 @@ class Info:
 	@typechecked
 	def is_title(self, value: str) -> bool:
 		pass
-
+	
 	@typechecked
 	def is_description(self, value: str) -> bool:
 		pass
@@ -415,33 +420,33 @@ class Info:
 	@typechecked
 	def is_wallpaper(self, value: Image.Image) -> bool:
 		pass
-
+	
 	@typechecked
 	def is_avatar(self, value: Image.Image) -> bool:
 		pass
-
+	
 	@typechecked
 	def is_picture(self, value: Image.Image) -> bool:
 		pass
-
+	
 	@typechecked
 	def is_icon(self, value: Image.Image) -> bool:
 		pass
 	
 	# ITERABLE #
-
+	
 	@typechecked
-	def is_column_of_items(self, value: Iterable[__authorize_quantum_dtype]) -> bool:
+	def is_column_of_items(self, value: Iterable[__union_quantum_dtype]) -> bool:
 		pass
 	
-	def is_table(self, value: Iterable[__authorize_quantum_dtype]) -> bool:
+	def is_table(self, value: Iterable[__union_quantum_dtype]) -> bool:
 		pass
 	
 	# FORMAT #
-
+	
 	@typechecked
-	def get_format(self, data: __authorize_dtype = None, dtype: Any = None, update_attr: bool = False) \
-			-> Dict[str, str]:
+	def get_format(self, data: __union_dtype = None, dtype: Any = None, update_attr: bool = False) \
+			-> Dict[str, Union[str, 'Info', Type['Info']]]:
 		"""
 		Create a dictionary such that the keys are a category that tells how to display the data, and the values are the
 		value associated to the category of the key (from 'data').
@@ -468,7 +473,7 @@ class Info:
 		result = {}
 		
 		# If quantum type
-		if info.dtype in self.__authorize_quantum_dtype.__args__:
+		if info.dtype in self.__union_quantum_dtype.__args__:
 			# TODO: parse str to know what is is precisely
 			result["content"] = info
 		# If list/tuple/set/dict
@@ -568,7 +573,7 @@ class Info:
 		if isinstance(other, Info):
 			if self.dtype == np.ndarray:
 				return other.dtype == np.ndarray and (self.data == other.data).all()
-			elif self.dtype in self.__authorize_images:
+			elif self.dtype in self.__list_images:
 				return other.dtype == self.dtype and ImageChops.difference(self.data, other.data).getbbox() is None
 			elif self.data != other.data:
 				return False

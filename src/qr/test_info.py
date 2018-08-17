@@ -34,10 +34,11 @@ class TestInfo(TestCase):
 			1,
 			2.0,
 			3j,
+			True,
 			Image.open("../../res/test/blackhole.jpg"),
 			np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8)
 		)
-		self.dtype2 = Tuple[Union[str, int, float, complex, np.ndarray, JpegImagePlugin.JpegImageFile]]
+		self.dtype2 = Tuple[Union[str, int, float, complex, bool, np.ndarray, JpegImagePlugin.JpegImageFile]]
 		i = Info(data=self.data2, process_data=False)
 		self.info2 = Info(data=self.data2, dtype=self.dtype2, process_data=False)
 		self.assertEqual(i, self.info2)
@@ -71,6 +72,7 @@ class TestInfo(TestCase):
 			Info(1),
 			Info(2.0),
 			Info(3j),
+			Info(True),
 			Info(Image.open("../../res/test/blackhole.jpg")),
 			Info(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8))
 		), process_data=False)
@@ -86,7 +88,7 @@ class TestInfo(TestCase):
 		self.assertEqual(int, i.autodetect_dtype(15))
 		self.assertEqual(float, i.autodetect_dtype(7.2))
 		self.assertEqual(complex, i.autodetect_dtype(7.2j + 5))
-		#self.assertEqual(bool, i.autodetect_dtype(True))
+		self.assertEqual(bool, i.autodetect_dtype(True))
 		self.assertEqual(Image.Image, i.autodetect_dtype(Image.Image()))
 		
 		# Object type
@@ -96,19 +98,19 @@ class TestInfo(TestCase):
 		self.assertNotEqual(dict, i.autodetect_dtype({5.2: "test"}))
 		
 		self.assertEqual(List[float], i.autodetect_dtype([5.2]))
-		self.assertEqual(List[Union[float, int, complex, str]], i.autodetect_dtype([5.2, 6, 4j + 2, ""]))
+		self.assertEqual(List[Union[float, int, complex, str, bool]], i.autodetect_dtype([5.2, 6, 4j + 2, "", False]))
 		self.assertEqual(List[None], i.autodetect_dtype([]))
 		
 		self.assertEqual(Tuple[float], i.autodetect_dtype((5.2,)))
-		self.assertEqual(Tuple[Union[float, int, complex, str]], i.autodetect_dtype((5.2, 6, 4j + 2, "")))
+		self.assertEqual(Tuple[Union[float, int, complex, str, bool]], i.autodetect_dtype((5.2, 6, 4j + 2, "", False)))
 		self.assertEqual(Tuple[None], i.autodetect_dtype(tuple()))
 		
 		self.assertEqual(Set[float], i.autodetect_dtype({5.2}))
-		self.assertEqual(Set[Union[float, int, complex, str]], i.autodetect_dtype({5.2, 6, 4j + 2, ""}))
+		self.assertEqual(Set[Union[float, int, complex, str, bool]], i.autodetect_dtype({5.2, 6, 4j + 2, "", False}))
 		self.assertEqual(Set[None], i.autodetect_dtype(set()))
 		
 		self.assertEqual(Dict[float, str], i.autodetect_dtype({5.2: "test"}))
-		self.assertEqual(Dict[Union[float, int, complex, str], str], i.autodetect_dtype({5.2: "test", 6: "t", 4j + 2: "e", "string": "s"}))
+		self.assertEqual(Dict[Union[float, int, complex, str, bool], str], i.autodetect_dtype({5.2: "test", 6: "t", 4j + 2: "e", "string": "s", True: "t"}))
 		self.assertEqual(Dict[None, None], i.autodetect_dtype({}))
 		
 		self.assertEqual(np.ndarray, i.autodetect_dtype(np.array([5, 5, 9])))
@@ -159,6 +161,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(float))
 		self.assertTrue(i.is_valid_dtype(complex))
 		self.assertTrue(i.is_valid_dtype(str))
+		self.assertTrue(i.is_valid_dtype(bool))
 		self.assertTrue(i.is_valid_dtype(Image.Image))
 		self.assertTrue(i.is_valid_dtype(Info))
 		self.assertTrue(i.is_valid_dtype(np.ndarray))
@@ -167,6 +170,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(List[float]))
 		self.assertTrue(i.is_valid_dtype(List[complex]))
 		self.assertTrue(i.is_valid_dtype(List[str]))
+		self.assertTrue(i.is_valid_dtype(List[bool]))
 		self.assertTrue(i.is_valid_dtype(List[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(List[Info]))
 		self.assertTrue(i.is_valid_dtype(List[np.ndarray]))
@@ -175,6 +179,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Tuple[float]))
 		self.assertTrue(i.is_valid_dtype(Tuple[complex]))
 		self.assertTrue(i.is_valid_dtype(Tuple[str]))
+		self.assertTrue(i.is_valid_dtype(Tuple[bool]))
 		self.assertTrue(i.is_valid_dtype(Tuple[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Tuple[Info]))
 		self.assertTrue(i.is_valid_dtype(Tuple[np.ndarray]))
@@ -183,6 +188,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Set[float]))
 		self.assertTrue(i.is_valid_dtype(Set[complex]))
 		self.assertTrue(i.is_valid_dtype(Set[str]))
+		self.assertTrue(i.is_valid_dtype(Set[bool]))
 		self.assertTrue(i.is_valid_dtype(Set[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Set[Info]))
 		self.assertTrue(i.is_valid_dtype(Set[np.ndarray]))
@@ -191,6 +197,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Dict[float, Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Dict[complex, int]))
 		self.assertTrue(i.is_valid_dtype(Dict[str, Info]))
+		self.assertTrue(i.is_valid_dtype(Dict[bool, JpegImagePlugin.JpegImageFile]))
 		self.assertTrue(i.is_valid_dtype(Dict[Image.Image, complex]))
 		self.assertTrue(i.is_valid_dtype(Dict[Info, float]))
 		self.assertTrue(i.is_valid_dtype(Dict[np.ndarray, int]))
@@ -199,6 +206,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Iterable[float]))
 		self.assertTrue(i.is_valid_dtype(Iterable[complex]))
 		self.assertTrue(i.is_valid_dtype(Iterable[str]))
+		self.assertTrue(i.is_valid_dtype(Iterable[bool]))
 		self.assertTrue(i.is_valid_dtype(Iterable[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Iterable[Info]))
 		self.assertTrue(i.is_valid_dtype(Iterable[np.ndarray]))
@@ -221,6 +229,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(float))
 		self.assertTrue(i.is_valid_dtype(complex))
 		self.assertTrue(i.is_valid_dtype(str))
+		self.assertTrue(i.is_valid_dtype(bool))
 		self.assertTrue(i.is_valid_dtype(Image.Image))
 		self.assertTrue(i.is_valid_dtype(Info))
 		self.assertTrue(i.is_valid_dtype(np.ndarray))
@@ -229,6 +238,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(List[float]))
 		self.assertTrue(i.is_valid_dtype(List[complex]))
 		self.assertTrue(i.is_valid_dtype(List[str]))
+		self.assertTrue(i.is_valid_dtype(List[bool]))
 		self.assertTrue(i.is_valid_dtype(List[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(List[Info]))
 		self.assertTrue(i.is_valid_dtype(List[np.ndarray]))
@@ -237,6 +247,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Tuple[float]))
 		self.assertTrue(i.is_valid_dtype(Tuple[complex]))
 		self.assertTrue(i.is_valid_dtype(Tuple[str]))
+		self.assertTrue(i.is_valid_dtype(Tuple[bool]))
 		self.assertTrue(i.is_valid_dtype(Tuple[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Tuple[Info]))
 		self.assertTrue(i.is_valid_dtype(Tuple[np.ndarray]))
@@ -245,6 +256,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Set[float]))
 		self.assertTrue(i.is_valid_dtype(Set[complex]))
 		self.assertTrue(i.is_valid_dtype(Set[str]))
+		self.assertTrue(i.is_valid_dtype(Set[bool]))
 		self.assertTrue(i.is_valid_dtype(Set[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Set[Info]))
 		self.assertTrue(i.is_valid_dtype(Set[np.ndarray]))
@@ -253,6 +265,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Dict[float, Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Dict[complex, int]))
 		self.assertTrue(i.is_valid_dtype(Dict[str, Info]))
+		self.assertTrue(i.is_valid_dtype(Dict[bool, JpegImagePlugin.JpegImageFile]))
 		self.assertTrue(i.is_valid_dtype(Dict[Image.Image, complex]))
 		self.assertTrue(i.is_valid_dtype(Dict[Info, float]))
 		self.assertTrue(i.is_valid_dtype(Dict[np.ndarray, int]))
@@ -261,6 +274,7 @@ class TestInfo(TestCase):
 		self.assertTrue(i.is_valid_dtype(Iterable[float]))
 		self.assertTrue(i.is_valid_dtype(Iterable[complex]))
 		self.assertTrue(i.is_valid_dtype(Iterable[str]))
+		self.assertTrue(i.is_valid_dtype(Iterable[bool]))
 		self.assertTrue(i.is_valid_dtype(Iterable[Image.Image]))
 		self.assertTrue(i.is_valid_dtype(Iterable[Info]))
 		self.assertTrue(i.is_valid_dtype(Iterable[np.ndarray]))
