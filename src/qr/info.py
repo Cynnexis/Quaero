@@ -6,7 +6,7 @@ import numpy as np
 from typing import Union, Optional, List, Dict, Tuple, Set, Iterable, Any, Type
 
 import PIL
-from PIL import Image, ImageFile, JpegImagePlugin, GifImagePlugin, PngImagePlugin
+from PIL import Image, ImageFile, JpegImagePlugin, GifImagePlugin, PngImagePlugin, ImageChops
 from typeguard import *
 
 """
@@ -28,6 +28,7 @@ class Info:
 	- Table (same as the item above) containing other instances of Info
 	"""
 	
+	__authorize_images = [Image.Image, JpegImagePlugin.JpegImageFile, GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile]
 	__authorize_quantum_dtype = Union[int, float, complex, str, Image.Image,
 	                                  GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile,
 	                                  JpegImagePlugin.JpegImageFile, Type['Info'], None]
@@ -320,12 +321,11 @@ class Info:
 			is_instance_dtype = True
 		
 		authorize_dtype = self.get_authorize_dtype()
-		images = [Image.Image, JpegImagePlugin.JpegImageFile, GifImagePlugin.GifImageFile, PngImagePlugin.PngImageFile]
 		
 		# If dtype ∈ authorize_dtype or dtype ⊂ authorize_dtype
-		if dtype in authorize_dtype.__args__ or dtype in images or \
+		if dtype in authorize_dtype.__args__ or dtype in self.__authorize_images or \
 				(hasattr(dtype, "__args__") and (set(dtype.__args__) < set(authorize_dtype.__args__) or \
-				                                 len(set(dtype.__args__).intersection(images)) > 0)):
+				                                 len(set(dtype.__args__).intersection(self.__authorize_images)) > 0)):
 			return True
 		elif dtype in [list, dict, tuple, set]:
 			message = "The given dtype is too simple: '{}'. Please use the value List[...], Tuple[...], " \
@@ -568,6 +568,8 @@ class Info:
 		if isinstance(other, Info):
 			if self.dtype == np.ndarray:
 				return other.dtype == np.ndarray and (self.data == other.data).all()
+			elif self.dtype in self.__authorize_images:
+				return other.dtype == self.dtype and ImageChops.difference(self.data, other.data).getbbox() is None
 			elif self.data != other.data:
 				return False
 			# Check dtype:
@@ -575,7 +577,7 @@ class Info:
 				if self.dtype == other.dtype:
 					return True
 				else:
-					# Convert both types into simple type (List -> list, ...)
+					# Convert both types into simple type (List -> list, ...) TODO: Deep equal
 					return objtype2simpletype(self.dtype) == objtype2simpletype(other.dtype)
 		
 		return False

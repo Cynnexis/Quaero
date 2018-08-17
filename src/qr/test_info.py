@@ -34,10 +34,10 @@ class TestInfo(TestCase):
 			1,
 			2.0,
 			3j,
-			#Image.open("../../res/test/blackhole.jpg"),
+			Image.open("../../res/test/blackhole.jpg"),
 			np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8)
 		)
-		self.dtype2 = Tuple[Union[str, int, float, complex, np.ndarray]] #, JpegImagePlugin.JpegImageFile
+		self.dtype2 = Tuple[Union[str, int, float, complex, np.ndarray, JpegImagePlugin.JpegImageFile]]
 		i = Info(data=self.data2, process_data=False)
 		self.info2 = Info(data=self.data2, dtype=self.dtype2, process_data=False)
 		self.assertEqual(i, self.info2)
@@ -71,7 +71,7 @@ class TestInfo(TestCase):
 			Info(1),
 			Info(2.0),
 			Info(3j),
-			#Info(Image.open("../../res/test/blackhole.jpg")),
+			Info(Image.open("../../res/test/blackhole.jpg")),
 			Info(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8))
 		), process_data=False)
 		test_info2 = self.info2.process(update_attr=True)
