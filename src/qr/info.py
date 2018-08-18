@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cmath
 import copy
 import warnings
 
@@ -150,7 +151,7 @@ class Info:
 			return return_fn(self, data, dtype, update_attr)
 		elif isinstance(data, Info):
 			return return_fn(self, data, dtype, update_attr)
-		# If data is a numpy array, let it as it is. TODO: Change that
+		# If data is a numpy array, let it as it is because it already handle the value itself.
 		elif self.check_data_against_dtype(data, np.ndarray):
 			return return_fn(self, data, dtype, update_attr)
 		# If data is an Iterable, use recursive concept
@@ -393,6 +394,53 @@ class Info:
 	
 	""" FORMAT FUNCTION """
 	
+	# NUMBER #
+
+	@typechecked
+	def get_min_max(self, value: Iterable[Union[int, float, complex]]) \
+			-> Tuple[Union[int, float, complex], Union[int, float, complex]]:
+		iteration = iter(value)
+		min = float("-inf")
+		max = float("+inf")
+		for i in iteration:
+			if isinstance(i, int) or isinstance(i, float):
+				if isinstance(min, complex):
+					if i < min.real:
+						min = i
+				else:
+					if i < min:
+						min = i
+				
+				if isinstance(max, complex):
+					if max.real < i:
+						max = i
+				else:
+					if max < i:
+						max = i
+			elif isinstance(i, complex):
+				if isinstance(min, complex):
+					if cmath.phase(i) < cmath.phase(min):
+						min = i
+				else:
+					if cmath.phase(i) < min:
+						min = i
+				
+				if isinstance(max, complex):
+					if cmath.phase(max) < cmath.phase(i):
+						max = i
+				else:
+					if max < cmath.phase(i):
+						max = i
+		return min, max
+
+	@typechecked
+	def as_price(self, value: Union[int, float], currency: str) -> str:
+		if currency == '€':
+			string = "{1:.2}{2}"
+		else:
+			string = "{2}{1:.2}"
+		return string.format(float(value), currency)
+	
 	# STRING #
 	
 	@typechecked
@@ -413,6 +461,10 @@ class Info:
 	
 	@typechecked
 	def is_quote(self, value: str) -> bool:
+		pass
+
+	@typechecked
+	def is_date(self, value: str) -> bool:
 		pass
 	
 	# IMAGE #
@@ -438,15 +490,16 @@ class Info:
 	@typechecked
 	def is_column_of_items(self, value: Iterable[__union_quantum_dtype]) -> bool:
 		pass
-	
-	def is_table(self, value: Iterable[__union_quantum_dtype]) -> bool:
+
+	@typechecked
+	def is_table(self, value: Union[Iterable[__union_quantum_dtype], np.ndarray]) -> bool:
 		pass
 	
 	# FORMAT #
 	
 	@typechecked
 	def get_format(self, data: __union_dtype = None, dtype: Any = None, update_attr: bool = False) \
-			-> Dict[str, Union[str, 'Info', Type['Info']]]:
+			-> Dict[str, Union[str, 'Info', Type['Info'], __list_images]]:
 		"""
 		Create a dictionary such that the keys are a category that tells how to display the data, and the values are the
 		value associated to the category of the key (from 'data').
@@ -508,10 +561,10 @@ class Info:
 	
 	# GETTERS & SETTERS #
 	
-	def get_data(self):
+	def get_data(self) -> __union_dtype:
 		return self._data
 	
-	def set_data(self, value):
+	def set_data(self, value: __union_dtype):
 		check_type("value", value, self._dtype)
 		self._data = value
 	
