@@ -66,10 +66,9 @@ class Info:
 					self._dtype = dtype
 				else:
 					raise TypeError("The type of the given data ({}) does not match the given "
-					                "dtype ({}).\n\tdata = {}\n\tAuto-detected type for data = {}".format(type(data),
-					                                                                                      dtype, data,
-					                                                                                      self.autodetect_dtype(
-						                                                                                      data)))
+					                "dtype ({}).\n\tdata = {}\n"
+					                "\tAuto-detected type for data = {}".format(type(data), dtype, data,
+					                                                            self.autodetect_dtype(data)))
 			else:  # dtype is None
 				autodetected_type = self.autodetect_dtype(data)
 				self._data = data

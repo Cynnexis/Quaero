@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import urllib
+import urllib.request
 from typing import Union, Optional, List, Any
 from typeguard import *
 
@@ -10,18 +12,27 @@ from qr.webresult import WebResult
 
 
 class Searcher:
+	"""
+	Search information on a website.
+	"""
 	
 	# CONSTRUCTOR
 	
 	@typechecked
 	def __init__(self, website: Optional[Union[str, WebResult]] = None):
+		"""
+		Constructor of Searcher.
+		:param website: The website to search on. It can either be an URL to the website, the HTML content of the
+		website or a WebResult (given by WebEngine).
+		:type website: Union[str, WebResult, None]
+		"""
 		if website is None:
 			website = None
+
+		# Configure website
+		website = self.__convert_website(website)
 		
 		self._website = website
-		
-		# Configure website
-		self.set_website(website)
 	
 	# SEARCHER METHODS #
 	
@@ -57,26 +68,46 @@ class Searcher:
 	def __search_anything(self, website: Union[str, WebResult]) -> Info:
 		website = self.__convert_website(website)
 		return Info()
-
+	
 	@typechecked
 	def __search_thoroughly(self, website: Union[str, WebResult],
-	                        keywords: Union[str, List[Union[str, int, float, complex, int, float, complex]]])\
+	                        keywords: Union[str, List[Union[str, int, float, complex, int, float, complex]]]) \
 			-> Info:
 		website = self.__convert_website(website)
-		keywords()
 		return Info()
 	
 	@typechecked
 	def __convert_website(self, website: Optional[Union[str, WebResult]]) -> Optional[str]:
+		"""
+		Configure the given argument such that it returns the HTML content of the given website
+		:param website: The website to convert.
+		:type website: Union[str, WebResult, None]
+		:return: Union[str, None]
+		"""
+		def get_html_content(url: str) -> str:
+			req = urllib.request.Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
+			content = ""
+			with urllib.request.urlopen(req) as f:
+				content = f.read().decode("utf-8")
+			return content
+		
 		if website is None:
 			return None
-		elif isinstance(website, str):
-			return website
 		elif isinstance(website, WebResult):
-			return website.url
+			website = website.url
+		
+		if isinstance(website, str):
+			# If the website is an url, download the page
+			if assess_url(website):
+				return get_html_content(website)
+			else:
+				return website
+		else:
+			return None
 	
 	# GETTER & SETTER #
 	
+	@typechecked
 	def get_website(self) -> Optional[str]:
 		return self._website
 	
