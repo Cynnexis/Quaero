@@ -2,8 +2,11 @@
 import urllib
 import urllib.request
 from typing import Union, Optional, List, Any
+
+from bs4 import Tag, Comment, PageElement, BeautifulSoup, Doctype
 from typeguard import *
 
+from qr.keywords_error import KeywordsError
 from qr.webengine import WebEngine
 from qr.information import Info
 from qr.webutils import assess_url
@@ -38,23 +41,32 @@ class Searcher:
 	
 	@typechecked
 	def search(self, website: Optional[Union[str, WebResult]] = None,
-	           keywords: Optional[Union[str, List[Union[str, int, float, complex, int, float, complex]]]] = None) \
+	           keywords: Optional[Union[str, List[Union[str, int, float, complex, int, float, complex]]]] = None,
+	           web_engine: Optional[WebEngine] = None) \
 			-> Info:
 		
 		# If 'website' is None, get the one from the constructor (if given)
 		if website is None:
 			website = self.get_website()
 		
+		# If 'web_engine' is None, get Google
+		if web_engine is None:
+			web_engine = WebEngine.get_google()
+		
 		# At least one argument must be given
 		if website is None and keywords is None:
 			raise TypeError("'website' and 'keywords' cannot be both None")
 		
-		# If 'website' is None but 'keyword' is not, then research on Google
+		# If 'website' is None but 'keyword' is not, then research on the given web engine
 		if website is None and keywords is not None:
-			results = WebEngine.get_google().search_list_result(keywords)
+			results = web_engine.search_list_result(keywords)
 			if len(results) > 0:
 				website = results[0]
 				website = self.__convert_website(website)
+				with open("../../out/searcher_first_result.html", 'w') as f:
+					f.write(website)
+			else:
+				raise KeywordsError("Cannot find any results with the following keywords: {}".format(keywords))
 		
 		# If 'website' is not None but keywords is, then search any content in the given website:
 		if website is not None and keywords is None:
@@ -73,7 +85,37 @@ class Searcher:
 	def __search_thoroughly(self, website: Union[str, WebResult],
 	                        keywords: Union[str, List[Union[str, int, float, complex, int, float, complex]]]) \
 			-> Info:
+		"""
+		See https://stackoverflow.com/questions/1936466/beautifulsoup-grab-visible-webpage-text
+		:param website:
+		:param keywords:
+		:return:
+		"""
+		
+		hidden_tags = ["head", "title", "meta", "script", "style", "[document]"]
+		
+		def is_tag_visible(tag: PageElement) -> bool:
+			return not (isinstance(tag, Tag) and (tag.name in hidden_tags or tag.parent.name in hidden_tags)) or \
+			       isinstance(tag, Comment)
+		
+		def extract_text(html: Union[BeautifulSoup, str]) -> List[str]:
+			if isinstance(html, str):
+				html = BeautifulSoup(html, features="html.parser")
+			
+			# Extract useless tags
+			[soup.extract() for soup in html.contents if isinstance(soup, Doctype)]
+			for hidden_tag in hidden_tags:
+				[soup.extract() for soup in html(hidden_tag)]
+			
+			texts = html.find_all(text=True)
+			visible_tags = list(filter(is_tag_visible, texts))
+			for i, tag in enumerate(visible_tags):
+				visible_tags[i] = visible_tags[i].strip()
+			visible_tags = list(filter(lambda element: element != '', visible_tags))
+			return list(tag.strip() for tag in visible_tags)
+		
 		website = self.__convert_website(website)
+		print(extract_text(website))
 		return Info()
 	
 	@typechecked

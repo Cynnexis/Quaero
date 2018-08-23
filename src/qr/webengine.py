@@ -341,7 +341,7 @@ class WebEngine:
 		       self.pattern_search_url == o.pattern_search_url
 	
 	def __str__(self) -> str:
-		return self.__repr__()
+		return "{} ({})".format(self.name, self.home_url)
 	
 	def __repr__(self) -> str:
 		return "WebEngine{name='{}', home_url='{}', pattern_search_url='{}'}".format(self.name, self.home_url,
