@@ -3,8 +3,7 @@ from unittest import TestCase
 
 from PIL import Image
 
-from qr.webengine import WebEngine
-from qr.webutils import assess_url
+from qr import WebEngine, assess_url
 
 import matplotlib.pyplot as plt
 

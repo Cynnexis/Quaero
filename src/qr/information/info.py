@@ -499,7 +499,7 @@ class Info:
 	
 	@typechecked
 	def get_format(self, data: __union_dtype = None, dtype: Any = None, update_attr: bool = False) \
-			-> Dict[str, Union[str, 'Info', Type['Info'], __list_images]]:
+			-> Dict[str, Union[str, 'Info', Type['Info']]]: # __list_images
 		"""
 		Create a dictionary such that the keys are a category that tells how to display the data, and the values are the
 		value associated to the category of the key (from 'data').

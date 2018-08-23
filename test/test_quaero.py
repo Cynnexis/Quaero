@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from qr import Quaero
+
 
 class TestQuaero(TestCase):
 	
