@@ -180,11 +180,19 @@ class WebEngine:
 						if span_nobr is not None:
 							date = self.remove_tags(span_nobr.text)
 				
+				# If date is None, search in the description
+				date_in_desc = True if date == "" else False
+				
 				# Get description
 				if span_st is not None:
 					# Extract the date (don't need it anymore)
 					[s.extract() for s in span_st("span", {"class": 'f'})]
-					description = self.remove_tags(span_st.text, True)
+					description = span_st.text;
+					if date_in_desc and " ... " in description:
+						date = description.split(" ... ")[0]
+						description = description.split(" ... ")[1]
+					date = self.remove_tags(date, False)
+					description = self.remove_tags(description, True)
 				else:
 					description = ""
 				

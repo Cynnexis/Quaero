@@ -19,6 +19,10 @@ The library that I used is:
 Also used the following tools:
 * [JetBrains PyCharm Community](https://www.jetbrains.com/pycharm/) - Python IDE
 
+## Links ##
+Here is few links that helped me build this python script:
+* [Stack Overflow - Do scrapers need to be written for every site they target?](https://stackoverflow.com/questions/27671676/do-scrapers-need-to-be-written-for-every-site-they-target)
+
 ## Versioning ##
 The project uses Git as a version control system.
 

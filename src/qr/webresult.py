@@ -107,7 +107,13 @@ class WebResult:
 				self.description == o.description
 	
 	def __str__(self) -> str:
-		return self.__repr__()
+		content = "WebResult{{" \
+		          "title='{}'," \
+		          "url='{}'," \
+		          "thumbnail='{}'," \
+		          "date='{}'," \
+		          "description='{}'}}".format(self.title, self.url, self.thumbnail, self.date, self.description)
+		return content
 	
 	def __repr__(self) -> str:
 		string = "{}\n{}\n".format(self.title, self.url)

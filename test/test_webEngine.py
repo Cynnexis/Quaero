@@ -59,7 +59,7 @@ class TestWebEngine(TestCase):
 			
 			print("{}: \"{}\"\n".format(google.name, query))
 			for item in items:
-				print("{}\n\n".format(item))
+				print("{}\n{}\n\n".format(item.__repr__(), item.__str__()))
 			
 			# Get the first item with a thumbnail and display it
 			if self.show_thumbnail:
